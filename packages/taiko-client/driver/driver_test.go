@@ -67,13 +67,14 @@ func (s *DriverTestSuite) SetupTest() {
 
 	s.Nil(d.InitFromConfig(ctx, &Config{
 		ClientConfig: &rpc.ClientConfig{
-			L1Endpoint:         os.Getenv("L1_WS"),
-			L2Endpoint:         os.Getenv("L2_WS"),
-			L2EngineEndpoint:   os.Getenv("L2_AUTH"),
-			PacayaInboxAddress: common.HexToAddress(os.Getenv("PACAYA_INBOX")),
-			ShastaInboxAddress: common.HexToAddress(os.Getenv("SHASTA_INBOX")),
-			TaikoAnchorAddress: common.HexToAddress(os.Getenv("TAIKO_ANCHOR")),
-			JwtSecret:          string(jwtSecret),
+			L1Endpoint:          os.Getenv("L1_WS"),
+			L2Endpoint:          os.Getenv("L2_WS"),
+			L2EngineEndpoint:    os.Getenv("L2_AUTH"),
+			PacayaInboxAddress:  common.HexToAddress(os.Getenv("PACAYA_INBOX")),
+			ShastaInboxAddress:  common.HexToAddress(os.Getenv("SHASTA_INBOX")),
+			PacayaAnchorAddress: common.HexToAddress(os.Getenv("PACAYA_ANCHOR")),
+			ShastaAnchorAddress: common.HexToAddress(os.Getenv("SHASTA_ANCHOR")),
+			JwtSecret:           string(jwtSecret),
 		},
 		BlobServerEndpoint:     s.BlobServer.URL(),
 		P2PConfigs:             p2pConfig,
@@ -905,22 +906,7 @@ func (s *DriverTestSuite) TestGossipMessagesRandomReorgs() {
 	s.Nil(err)
 	s.Equal(l2Head1.Number.Uint64(), headL1Origin.BlockID.Uint64())
 
-	ok, err := blocksInserter.IsBasedOnCanonicalChain(
-		context.Background(),
-		s.RPCClient,
-		&preconf.Envelope{
-			Payload: &eth.ExecutionPayload{
-				BlockNumber: eth.Uint64Quantity(forkB[len(forkB)-1].Number().Uint64()),
-				BlockHash:   forkB[len(forkB)-1].Hash(),
-				ParentHash:  forkB[len(forkB)-1].ParentHash(),
-			},
-		},
-		headL1Origin,
-	)
-	s.Nil(err)
-	s.True(ok)
-
-	ok, err = blocksInserter.IsBasedOnCanonicalChain(
+	isForkALastBlockCanonical, err := blocksInserter.IsBasedOnCanonicalChain(
 		context.Background(),
 		s.RPCClient,
 		&preconf.Envelope{
@@ -930,41 +916,30 @@ func (s *DriverTestSuite) TestGossipMessagesRandomReorgs() {
 				ParentHash:  forkA[len(forkA)-1].ParentHash(),
 			},
 		},
-		headL1Origin,
+		&rawdb.L1Origin{BlockID: headL1Origin.BlockID, L2BlockHash: testutils.RandomHash()},
 	)
 	s.Nil(err)
-	s.True(ok)
+
+	isForkBLastBlockCanonical, err := blocksInserter.IsBasedOnCanonicalChain(
+		context.Background(),
+		s.RPCClient,
+		&preconf.Envelope{
+			Payload: &eth.ExecutionPayload{
+				BlockNumber: eth.Uint64Quantity(forkB[len(forkB)-1].Number().Uint64()),
+				BlockHash:   forkB[len(forkB)-1].Hash(),
+				ParentHash:  forkB[len(forkB)-1].ParentHash(),
+			},
+		},
+		&rawdb.L1Origin{BlockID: headL1Origin.BlockID, L2BlockHash: testutils.RandomHash()},
+	)
+	s.Nil(err)
 
 	if isInForkA {
-		ok, err = blocksInserter.IsBasedOnCanonicalChain(
-			context.Background(),
-			s.RPCClient,
-			&preconf.Envelope{
-				Payload: &eth.ExecutionPayload{
-					BlockNumber: eth.Uint64Quantity(forkB[len(forkB)-1].Number().Uint64()),
-					BlockHash:   forkB[len(forkB)-1].Hash(),
-					ParentHash:  forkB[len(forkB)-1].ParentHash(),
-				},
-			},
-			&rawdb.L1Origin{BlockID: headL1Origin.BlockID, L2BlockHash: testutils.RandomHash()},
-		)
-		s.Nil(err)
-		s.False(ok)
+		s.True(isForkALastBlockCanonical)
+		s.False(isForkBLastBlockCanonical)
 	} else {
-		ok, err = blocksInserter.IsBasedOnCanonicalChain(
-			context.Background(),
-			s.RPCClient,
-			&preconf.Envelope{
-				Payload: &eth.ExecutionPayload{
-					BlockNumber: eth.Uint64Quantity(forkA[len(forkA)-1].Number().Uint64()),
-					BlockHash:   forkA[len(forkA)-1].Hash(),
-					ParentHash:  forkA[len(forkA)-1].ParentHash(),
-				},
-			},
-			&rawdb.L1Origin{BlockID: headL1Origin.BlockID, L2BlockHash: testutils.RandomHash()},
-		)
-		s.Nil(err)
-		s.False(ok)
+		s.True(isForkBLastBlockCanonical)
+		s.False(isForkALastBlockCanonical)
 	}
 }
 
@@ -1321,7 +1296,8 @@ func (s *DriverTestSuite) InitProposer() {
 			TaikoWrapperAddress:         common.HexToAddress(os.Getenv("TAIKO_WRAPPER")),
 			ProverSetAddress:            common.HexToAddress(os.Getenv("PROVER_SET")),
 			ForcedInclusionStoreAddress: common.HexToAddress(os.Getenv("FORCED_INCLUSION_STORE")),
-			TaikoAnchorAddress:          common.HexToAddress(os.Getenv("TAIKO_ANCHOR")),
+			PacayaAnchorAddress:         common.HexToAddress(os.Getenv("PACAYA_ANCHOR")),
+			ShastaAnchorAddress:         common.HexToAddress(os.Getenv("SHASTA_ANCHOR")),
 			TaikoTokenAddress:           common.HexToAddress(os.Getenv("TAIKO_TOKEN")),
 		},
 		L1ProposerPrivKey:       l1ProposerPrivKey,

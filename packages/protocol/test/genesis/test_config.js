@@ -115,12 +115,10 @@ module.exports = {
     gasExcess: 0,
   },
   predeployERC20: true,
-  pacayaForkHeight: 1024,
   shastaForkHeight: 2048,
   livenessBondGwei: 128_000_000_000,
   provabilityBondGwei: 128_000_000_000,
   withdrawalDelay: 3600,
-  maxCheckpointHistory: 256,
   minBond: 0,
   bondToken: "0x0000000000000000000000000000000000000000",
 };

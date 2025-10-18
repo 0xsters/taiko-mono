@@ -69,7 +69,8 @@ type ClientConfig struct {
 	PacayaInboxAddress          common.Address
 	ShastaInboxAddress          common.Address
 	TaikoWrapperAddress         common.Address
-	TaikoAnchorAddress          common.Address
+	PacayaAnchorAddress         common.Address
+	ShastaAnchorAddress         common.Address
 	TaikoTokenAddress           common.Address
 	ForcedInclusionStoreAddress common.Address
 	PreconfWhitelistAddress     common.Address
@@ -159,8 +160,10 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 	}
 
 	// Ensure that the genesis block hash of L1 and L2 match.
-	if err := c.ensureGenesisMatched(ctxWithTimeout, cfg.PacayaInboxAddress); err != nil {
-		return nil, fmt.Errorf("failed to ensure genesis block matched: %w", err)
+	if cfg.PacayaInboxAddress != (common.Address{}) {
+		if err := c.ensureGenesisMatched(ctxWithTimeout, cfg.PacayaInboxAddress); err != nil {
+			return nil, fmt.Errorf("failed to ensure genesis block matched: %w", err)
+		}
 	}
 
 	return c, nil
@@ -178,7 +181,7 @@ func (c *Client) initPacayaClients(cfg *ClientConfig) error {
 		return fmt.Errorf("failed to create new instance of ForkRouter: %w", err)
 	}
 
-	taikoAnchor, err := pacayaBindings.NewTaikoAnchorClient(cfg.TaikoAnchorAddress, c.L2)
+	taikoAnchor, err := pacayaBindings.NewTaikoAnchorClient(cfg.PacayaAnchorAddress, c.L2)
 	if err != nil {
 		return fmt.Errorf("failed to create new instance of TaikoAnchorClient: %w", err)
 	}
@@ -273,7 +276,7 @@ func (c *Client) initShastaClients(ctx context.Context, cfg *ClientConfig) error
 		return fmt.Errorf("failed to create new instance of ShastaInboxClient: %w", err)
 	}
 
-	shastaAnchor, err := shastaBindings.NewShastaAnchor(cfg.TaikoAnchorAddress, c.L2)
+	shastaAnchor, err := shastaBindings.NewShastaAnchor(cfg.ShastaAnchorAddress, c.L2)
 	if err != nil {
 		return fmt.Errorf("failed to create new instance of ShastaAnchorClient: %w", err)
 	}

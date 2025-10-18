@@ -27,6 +27,7 @@ jobs:
           scopes: |
             repo
             main
+            blobindexer-rs
             deps
             deps-dev
             docs-site
@@ -41,6 +42,7 @@ jobs:
             nfts
             ui-lib
             taiko-client
+            taiko-client-rs
             supplementary-contracts
             balance-monitor
           requireScope: true
